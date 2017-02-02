@@ -77,11 +77,11 @@ commonName                      = Common Name
 emailAddress                    = Email Address
 
 # Optionally, specify some defaults.
-countryName_default             = {{ ipsec_ca_countryName }}
-stateOrProvinceName_default     = {{ ipsec_ca_stateOrProvinceName }}
-localityName_default            = {{ ipsec_ca_localityName }}
-0.organizationName_default      = {{ ipsec_ca_organizationName }}
-emailAddress_default            = {{ ipsec_ca_emailAddress }}
+countryName_default             = {{ ipsec_ca_countryName | default("") }}
+stateOrProvinceName_default     = {{ ipsec_ca_stateOrProvinceName | default("") }}
+localityName_default            = {{ ipsec_ca_localityName | default("") }}
+0.organizationName_default      = {{ ipsec_ca_organizationName | default("") }}
+emailAddress_default            = {{ ipsec_ca_emailAddress | default("") }}
                                   
 [ v3_ca ]
 # Extensions for a typical CA (`man x509v3_config`).

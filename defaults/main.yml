@@ -1,8 +1,3 @@
 ---
 # defaults file for openshift-ipsec
 ipsec_ca_dir: /etc/ipsec-ca
-ipsec_ca_countryName: US
-ipsec_ca_stateOrProvinceName: New Jersey
-ipsec_ca_localityName: Mahwah
-ipsec_ca_organizationName: UPS
-ipsec_ca_emailAddress: root@example.com
