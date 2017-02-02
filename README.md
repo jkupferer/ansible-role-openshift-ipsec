@@ -16,6 +16,19 @@ Requirements
 
 An OpenShift cluster with an Ansible hosts file describing all cluster nodes.
 
+All hosts within the cluster need to allow some network traffic to support
+IPSec. This includes protocol numbers 50 and 51 as well as UDP port 500.
+
+For example, if the cluster nodes communicate over interface eth0, rules of
+the following forms may be used:
+
+    -A OS_FIREWALL_ALLOW -i eth0 -p 50 -j ACCEPT
+    -A OS_FIREWALL_ALLOW -i eth0 -p 51 -j ACCEPT
+    -A OS_FIREWALL_ALLOW -i eth0 -p udp --dport 500 -j ACCEPT
+
+IPSec also uses UDP port 4500 for NAT traversal, but this should not apply
+to normal cluster deployments.
+
 Role Variables
 --------------
 
