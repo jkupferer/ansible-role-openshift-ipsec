@@ -1,0 +1,7 @@
+---
+# handlers file for openshift-ipsec
+
+- name: restart ipsec
+  service:
+    name: ipsec
+    state: restarted

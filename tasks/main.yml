@@ -1,0 +1,17 @@
+---
+- name: Install libreswan
+  yum:
+    name: libreswan
+    state: present
+
+- when: inventory_hostname == groups['masters'][0]
+  static: no
+  include: init-ipsec-ca.yml
+
+- include: init-ipsec-host-cert.yml
+
+- when: inventory_hostname in groups['masters']
+  static: no
+  include: ipsec-ca-sync.yml
+
+- include: init-ipsec-host.yml

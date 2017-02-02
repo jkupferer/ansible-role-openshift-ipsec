@@ -1,0 +1,39 @@
+- when: inventory_hostname == groups['masters'][0]
+  block:
+  - name: Create /tmp/ipsec-ca
+    delegate_to: localhost
+    file:
+      path: /tmp/ipsec-ca
+      state: directory
+      recurse: yes
+
+  - name: Create /tmp/ipsec-host
+    delegate_to: localhost
+    file:
+      path: /tmp/ipsec-host/{{ groups['masters'][0] }}/etc
+      state: directory
+      recurse: yes
+
+  - name: Create convenience symlink in /tmp/ipsec-ca
+    delegate_to: localhost
+    file:
+      path: /tmp/ipsec-host/{{ groups['masters'][0] }}/etc/ipsec-ca
+      src: "../../../ipsec-ca"
+      state: link
+
+  - name: Get file list for ipsec-ca
+    command: find "{{ ipsec_ca_dir }}" -type f
+    changed_when: false
+    register: ipsec_ca_filelist
+
+  - name: Fetch ipsec-ca
+    fetch:
+      src: "{{ item }}"
+      dest: /tmp/ipsec-host
+    with_items: "{{ ipsec_ca_filelist.stdout_lines }}"
+
+- name: Sync ipsec CA data to each master.
+  when: inventory_hostname != groups['masters'][0]
+  copy:
+    dest: /etc
+    src: /tmp/ipsec-ca

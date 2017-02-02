@@ -1,0 +1,93 @@
+- name: Create IPSEC certificate authority directory
+  file:
+    path: "{{ ipsec_ca_dir }}"
+    owner: root
+    group: root
+    mode: 0755
+    state: directory
+
+- name: Create IPSEC certificate authority sub-directory
+  file:
+    path: "{{ ipsec_ca_dir }}/{{ item }}"
+    owner: root
+    group: root
+    mode: 0755
+    state: directory
+  with_items:
+  - certs
+  - crl
+  - csr
+  - newcerts
+
+- name: Create IPSEC certificate authority private directory
+  file:
+    path: "{{ ipsec_ca_dir }}/private"
+    owner: root
+    group: root
+    mode: 0700
+    state: directory
+
+- name: Create empty index.txt
+  copy:
+    dest: "{{ ipsec_ca_dir }}/index.txt"
+    content: ""
+    owner: root
+    group: root
+    mode: 0644
+    force: no
+
+- name: Initialize certificate authority serial
+  copy:
+    dest: "{{ ipsec_ca_dir }}/serial"
+    content: "1000"
+    owner: root
+    group: root
+    mode: 0644
+    force: no
+
+- name: Create ipsec openssl.cnf
+  template:
+    src: openssl.cnf.j2
+    dest: "{{ ipsec_ca_dir }}/openssl.cnf"
+    owner: root
+    group: root
+    mode: 0644
+
+- stat:
+    path: "{{ ipsec_ca_dir }}/private/ca.key"
+  register: stat_ca_key
+
+- name: Create ipsec ca.key
+  command: openssl genrsa -out private/ca.key 4096
+  args:
+    chdir: "{{ ipsec_ca_dir }}"
+  when: not stat_ca_key.stat.exists
+
+- name: Set permissions on ca.key
+  file:
+    path: "{{ ipsec_ca_dir }}/private/ca.key"
+    owner: root
+    group: root
+    mode: 0600
+
+- stat:
+    path: "{{ ipsec_ca_dir }}/certs/ca.cert"
+  register: stat_ca_cert
+
+- name: Create ipsec ca.cert
+  command: >
+    openssl req -config openssl.cnf -batch
+    -key private/ca.key
+    -new -x509 -days 7300 -sha256 -extensions v3_ca
+    -out certs/ca.cert
+    -subj "/commonName=ca.openshift-ipsec"
+  args:
+    chdir: "{{ ipsec_ca_dir }}"
+  when: not stat_ca_cert.stat.exists
+
+- name: Set permissions on ca.cert
+  file:
+    path: "{{ ipsec_ca_dir }}/certs/ca.cert"
+    owner: root
+    group: root
+    mode: 0444

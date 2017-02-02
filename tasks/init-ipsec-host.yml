@@ -1,0 +1,47 @@
+- name: Check if ipsec database is initialized
+  stat:
+    path: /etc/ipsec.d/key4.db
+  register: check_ipsec_db_init
+
+- name: Initialize ipsec database
+  command: ipsec initnss
+  when: not check_ipsec_db_init.stat.exists
+
+- name: Check ipsec hostkey
+  shell: certutil -K -d sql:/etc/ipsec.d/ | fgrep {{ inventory_hostname }}
+  register: check_ipsec_showhostkey
+  changed_when: false
+  failed_when: false
+
+- when: check_ipsec_showhostkey.rc != 0
+  block:
+  - name: Copy p12 file to node
+    copy:
+      src: /tmp/ipsec-ca/private/{{ inventory_hostname }}.p12
+      dest: /tmp/{{ inventory_hostname }}.p12
+
+  - name: Import host cert into ipsec database
+    command: pk12util -i /tmp/{{ inventory_hostname }}.p12 -d sql:/etc/ipsec.d -W ""
+
+  - name: Delete p12 file from node
+    file:
+      path: /tmp/{{ inventory_hostname }}.p12
+      state: absent
+
+- name: ipsec cluster configuration
+  template:
+    src: openshift-cluster.conf.j2
+    dest: /etc/ipsec.d/openshift-cluster.conf
+  notify: restart ipsec
+
+- name: ipsec secrets configuration
+  template:
+    src: openshift-cluster.secrets.j2
+    dest: /etc/ipsec.d/openshift-cluster.secrets
+  notify: restart ipsec
+
+- name: start and enable ipsec service
+  service:
+    name: ipsec
+    state: started
+    enabled: yes
