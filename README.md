@@ -16,17 +16,17 @@ Requirements
 
 An OpenShift cluster with an Ansible hosts file describing all cluster nodes.
 
-All hosts within the cluster need to allow some network traffic to support
-IPSec. This includes protocol numbers 50 and 51 as well as UDP port 500.
+All nodes within the cluster need to allow IPSec related network traffic. This
+includes IP protocol numbers 50 and 51 as well as UDP port 500.
 
 For example, if the cluster nodes communicate over interface eth0, rules of
-the following forms may be used:
+the following form may be added to `/etc/sysconfig/iptables`:
 
     -A OS_FIREWALL_ALLOW -i eth0 -p 50 -j ACCEPT
     -A OS_FIREWALL_ALLOW -i eth0 -p 51 -j ACCEPT
     -A OS_FIREWALL_ALLOW -i eth0 -p udp --dport 500 -j ACCEPT
 
-IPSec also uses UDP port 4500 for NAT traversal, but this should not apply
+IPSec also uses UDP port 4500 for NAT traversal, though this should not apply
 to normal cluster deployments.
 
 Role Variables
@@ -44,6 +44,10 @@ Role Variables
 
 * `ipsec_ca_emailAddress` - Default email address value for certificates (Optional)
 
+* `ipsec_ca_key` - CA key if one should not be auto-generated (Optional)
+
+* `ipsec_ca_cert` - CA cert if one should not be auto-generated (Optional)
+
 
 Example Playbook
 ----------------
@@ -54,6 +58,8 @@ Including an example of how to use your role (for instance, with variables passe
       roles:
       - role: openshift-ipsec
         ipsec_ca_dir: /etc/ipsec-ca
+        ipsec_ca_key: ca-key.pem
+        ipsec_ca_cert: ca-crt.pem
 
 License
 -------

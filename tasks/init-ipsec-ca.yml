@@ -53,41 +53,61 @@
     group: root
     mode: 0644
 
-- stat:
-    path: "{{ ipsec_ca_dir }}/private/ca.key"
-  register: stat_ca_key
-
-- name: Create ipsec ca.key
-  command: openssl genrsa -out private/ca.key 4096
-  args:
-    chdir: "{{ ipsec_ca_dir }}"
-  when: not stat_ca_key.stat.exists
-
-- name: Set permissions on ca.key
-  file:
-    path: "{{ ipsec_ca_dir }}/private/ca.key"
+- when: ipsec_ca_key is defined
+  copy:
+    src: "{{ ipsec_ca_key }}"
+    dest: "{{ ipsec_ca_dir }}/private/ca.key"
     owner: root
     group: root
     mode: 0600
 
-- stat:
-    path: "{{ ipsec_ca_dir }}/certs/ca.cert"
-  register: stat_ca_cert
+- when: ipsec_ca_key is not defined
+  block:
+  - stat:
+      path: "{{ ipsec_ca_dir }}/private/ca.key"
+    register: stat_ca_key
 
-- name: Create ipsec ca.cert
-  command: >
-    openssl req -config openssl.cnf -batch
-    -key private/ca.key
-    -new -x509 -days 7300 -sha256 -extensions v3_ca
-    -out certs/ca.cert
-    -subj "/commonName=ca.openshift-ipsec"
-  args:
-    chdir: "{{ ipsec_ca_dir }}"
-  when: not stat_ca_cert.stat.exists
+  - name: Create ipsec ca.key
+    command: openssl genrsa -out private/ca.key 4096
+    args:
+      chdir: "{{ ipsec_ca_dir }}"
+    when: not stat_ca_key.stat.exists
 
-- name: Set permissions on ca.cert
-  file:
-    path: "{{ ipsec_ca_dir }}/certs/ca.cert"
+  - name: Set permissions on ca.key
+    file:
+      path: "{{ ipsec_ca_dir }}/private/ca.key"
+      owner: root
+      group: root
+      mode: 0600
+
+- when: ipsec_ca_cert is defined
+  copy:
+    src: "{{ ipsec_ca_cert }}"
+    dest: "{{ ipsec_ca_dir }}/certs/ca.cert"
     owner: root
     group: root
     mode: 0444
+
+- when: ipsec_ca_cert is not defined
+  block:
+  - stat:
+      path: "{{ ipsec_ca_dir }}/certs/ca.cert"
+    register: stat_ca_cert
+
+  - name: Create ipsec ca.cert
+    command: >
+      openssl req -config openssl.cnf -batch
+      -key private/ca.key
+      -new -x509 -days 7300 -sha256 -extensions v3_ca
+      -out certs/ca.cert
+      -subj "/commonName=ca.openshift-ipsec"
+    args:
+      chdir: "{{ ipsec_ca_dir }}"
+    when: not stat_ca_cert.stat.exists
+
+  - name: Set permissions on ca.cert
+    file:
+      path: "{{ ipsec_ca_dir }}/certs/ca.cert"
+      owner: root
+      group: root
+      mode: 0444
