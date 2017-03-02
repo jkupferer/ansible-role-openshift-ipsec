@@ -1,11 +1,11 @@
 {% for other_host in groups['nodes'] -%}
 {%   if other_host != inventory_hostname -%}
 conn {{ other_host }}
-	left={{ hostvars[inventory_hostname]['ansible_eth0']['ipv4']['address'] }}
+	left={{ hostvars[inventory_hostname]['ansible_default_ipv4']['address'] }}
 	leftid="CN={{ inventory_hostname }}"
         leftrsasigkey=%cert
         leftcert={{ inventory_hostname }}
-	right={{ hostvars[other_host]['ansible_eth0']['ipv4']['address'] }}
+	right={{ hostvars[other_host]['ansible_default_ipv4']['address'] }}
 	rightid="CN={{ other_host }}"
         rightrsasigkey=%cert
 	auto=start
