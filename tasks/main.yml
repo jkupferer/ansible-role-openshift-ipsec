@@ -1,17 +1,27 @@
 ---
+# Install libreswan package on every host.
 - name: Install libreswan
   yum:
     name: libreswan
     state: present
 
+# Generate certificate authority for cluster.
 - when: inventory_hostname == groups['masters'][0]
   static: no
   include: init-ipsec-ca.yml
 
-- include: init-ipsec-host-cert.yml
-
-- when: inventory_hostname in groups['masters']
+# Create IPSec host certificate.
+- when: inventory_hostname == groups['masters'][0]
   static: no
-  include: ipsec-ca-sync.yml
+  include: init-ipsec-host-cert.yml
+  with_items: "{{ play_hosts }}"
+  loop_control:
+    loop_var: ipsec_hostname
 
+# Copy IPSec CA to all masters.
+#- when: inventory_hostname in groups['masters']
+#  static: no
+#  include: ipsec-ca-sync.yml
+
+# Configure ipsec service on host
 - include: init-ipsec-host.yml

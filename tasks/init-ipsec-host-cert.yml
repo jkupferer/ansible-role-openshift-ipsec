@@ -1,64 +1,62 @@
-- name: Check for host cert in /tmp/ipsec-ca
-  delegate_to: "{{ groups['masters'][0] }}"
+- name: Check for host cert at {{ ipsec_ca_dir }}/certs/{{ ipsec_hostname }}.cert
   stat:
-    path: "/etc/ipsec-ca/certs/{{ inventory_hostname }}.cert"
+    path: "{{ ipsec_ca_dir }}/certs/{{ ipsec_hostname }}.cert"
   register: stat_host_cert
 
-- name: Check for host key in /tmp/ipsec-ca
-  delegate_to: "{{ groups['masters'][0] }}"
+- name: Check for host key at {{ ipsec_ca_dir }}/private/{{ ipsec_hostname }}.key
   stat:
-    path: "/etc/ipsec-ca/private/{{ inventory_hostname }}.key"
+    path: "{{ ipsec_ca_dir }}/private/{{ ipsec_hostname }}.key"
   register: stat_host_key
 
-- name: Check for pkcs12 file in /tmp/ipsec-ca
-  delegate_to: "{{ groups['masters'][0] }}"
+- name: Check for pkcs12 file at {{ ipsec_ca_dir }}/private/{{ ipsec_hostname }}.p12
   stat:
-    path: "/etc/ipsec-ca/private/{{ inventory_hostname }}.p12"
+    path: "{{ ipsec_ca_dir }}/private/{{ ipsec_hostname }}.p12"
   register: stat_host_p12
 
-- when: not stat_host_key.stat.exists
+- when: >
+    not stat_host_key.stat.exists
   block:
-  - delegate_to: "{{ groups['masters'][0] }}"
-    shell: >
-      openssl genrsa -out private/{{ inventory_hostname }}.key 4096
+  - shell: >
+      openssl genrsa -out private/{{ ipsec_hostname }}.key 4096
       &&
-      chmod 400 private/{{ inventory_hostname }}.key
+      chmod 400 private/{{ ipsec_hostname }}.key
     args:
       chdir: "{{ ipsec_ca_dir }}"
-    with_items: "{{ groups['nodes'] }}"
-    when: "hostvars[item].inventory_hostname == inventory_hostname"
 
-- when: not stat_host_key.stat.exists or not stat_host_cert.stat.exists
+- when: >
+    not stat_host_key.stat.exists or
+    not stat_host_cert.stat.exists
   block:
   - name: Create ipsec certificiate
     delegate_to: "{{ groups['masters'][0] }}"
     shell: >
       openssl req -config openssl.cnf -batch
-      -key private/{{ inventory_hostname }}.key
-      -new -sha256 -out csr/{{ inventory_hostname }}.csr
-      -subj "/commonName={{ inventory_hostname }}"
+      -key private/{{ ipsec_hostname }}.key
+      -new -sha256 -out csr/{{ ipsec_hostname }}.csr
+      -subj "/commonName={{ ipsec_hostname }}"
       &&
       openssl ca -config openssl.cnf -batch
       -extensions server_cert -days 7500 -notext -md sha256
-      -in csr/{{ inventory_hostname }}.csr
-      -out certs/{{ inventory_hostname }}.cert
+      -in csr/{{ ipsec_hostname }}.csr
+      -out certs/{{ ipsec_hostname }}.cert
       &&
-      chmod 444 certs/{{ inventory_hostname }}.cert
+      chmod 444 certs/{{ ipsec_hostname }}.cert
     args:
       chdir: "{{ ipsec_ca_dir }}"
-    with_items: "{{ groups['nodes'] }}"
-    when: "hostvars[item].inventory_hostname == inventory_hostname"
 
-- when: not stat_host_p12.stat.exists
+- when: >
+    not stat_host_p12.stat.exists or
+    not stat_host_key.stat.exists or
+    not stat_host_cert.stat.exists
   name: Create pkcs12 file
   delegate_to: "{{ groups['masters'][0] }}"
   shell: >
     openssl pkcs12 -export
-    -in certs/{{ inventory_hostname }}.cert
-    -inkey private/{{ inventory_hostname }}.key
+    -in certs/{{ ipsec_hostname }}.cert
+    -inkey private/{{ ipsec_hostname }}.key
     -certfile certs/ca.cert
     -passout pass:
-    -out private/{{ inventory_hostname }}.p12
-    -name {{ inventory_hostname }}
+    -out private/{{ ipsec_hostname }}.p12
+    -name {{ ipsec_hostname }}
   args:
     chdir: "{{ ipsec_ca_dir }}"

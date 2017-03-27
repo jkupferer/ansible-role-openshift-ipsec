@@ -54,6 +54,7 @@
     mode: 0644
 
 - when: ipsec_ca_key is defined
+  name: Copy ipsec CA key from {{ ipsec_ca_key }} to {{ ipsec_ca_dir }}/private/ca.key
   copy:
     src: "{{ ipsec_ca_key }}"
     dest: "{{ ipsec_ca_dir }}/private/ca.key"
@@ -63,17 +64,18 @@
 
 - when: ipsec_ca_key is not defined
   block:
-  - stat:
+  - name: Check if {{ ipsec_ca_dir }}/private/ca.key exists
+    stat:
       path: "{{ ipsec_ca_dir }}/private/ca.key"
     register: stat_ca_key
 
-  - name: Create ipsec ca.key
+  - name: Create {{ ipsec_ca_dir }}/private/ca.key
     command: openssl genrsa -out private/ca.key 4096
     args:
       chdir: "{{ ipsec_ca_dir }}"
     when: not stat_ca_key.stat.exists
 
-  - name: Set permissions on ca.key
+  - name: Set permissions on {{ ipsec_ca_dir }}/private/ca.key
     file:
       path: "{{ ipsec_ca_dir }}/private/ca.key"
       owner: root
@@ -81,6 +83,7 @@
       mode: 0600
 
 - when: ipsec_ca_cert is defined
+  name: Copy ipsec CA certificate from {{ ipsec_ca_cert }} to {{ ipsec_ca_dir }}/private/ca.cert
   copy:
     src: "{{ ipsec_ca_cert }}"
     dest: "{{ ipsec_ca_dir }}/certs/ca.cert"
@@ -90,11 +93,12 @@
 
 - when: ipsec_ca_cert is not defined
   block:
-  - stat:
+  - name: Check if {{ ipsec_ca_dir }}/certs/ca.cert exists
+    stat:
       path: "{{ ipsec_ca_dir }}/certs/ca.cert"
     register: stat_ca_cert
 
-  - name: Create ipsec ca.cert
+  - name: Create {{ ipsec_ca_dir }}/certs/ca.cert
     command: >
       openssl req -config openssl.cnf -batch
       -key private/ca.key
@@ -105,7 +109,7 @@
       chdir: "{{ ipsec_ca_dir }}"
     when: not stat_ca_cert.stat.exists
 
-  - name: Set permissions on ca.cert
+  - name: Set permissions on {{ ipsec_ca_dir }}/certs/ca.cert
     file:
       path: "{{ ipsec_ca_dir }}/certs/ca.cert"
       owner: root

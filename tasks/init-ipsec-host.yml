@@ -7,26 +7,37 @@
   command: ipsec initnss
   when: not check_ipsec_db_init.stat.exists
 
-- name: Check ipsec hostkey
-  shell: certutil -K -d sql:/etc/ipsec.d/ | fgrep {{ inventory_hostname }}
-  register: check_ipsec_showhostkey
+- name: Read host pkcs12 from first master
+  delegate_to: "{{ groups['masters'][0] }}"
+  command: >
+    base64 {{ ipsec_ca_dir }}/private/{{ inventory_hostname }}.p12
+  register: read_pkcs12
   changed_when: false
-  failed_when: false
 
-- when: check_ipsec_showhostkey.rc != 0
+- name: Copy pkcs12 base64 to node
+  copy:
+    content: "{{ read_pkcs12.stdout }}"
+    dest: /etc/ipsec.d/{{ inventory_hostname }}.p12.base64
+    mode: u=rw,g=,o=
+  register: copy_pkcs12_base64
+
+- when: copy_pkcs12_base64.changed
   block:
-  - name: Copy p12 file to node
-    copy:
-      src: /tmp/ipsec-ca/private/{{ inventory_hostname }}.p12
-      dest: /tmp/{{ inventory_hostname }}.p12
+
+  - name: Decode pkcs12 base64 for /etc/ipsec.d/{{ inventory_hostname }}.p12
+    shell: >
+      base64 -d /etc/ipsec.d/{{ inventory_hostname }}.p12.base64
+      >/etc/ipsec.d/{{ inventory_hostname }}.p12
+
+  - name: Permissions on pkcs12 file /etc/ipsec.d/{{ inventory_hostname }}.p12
+    file:
+      path: /etc/ipsec.d/{{ inventory_hostname }}.p12
+      mode: u=rw,g=,o=
 
   - name: Import host cert into ipsec database
-    command: pk12util -i /tmp/{{ inventory_hostname }}.p12 -d sql:/etc/ipsec.d -W ""
-
-  - name: Delete p12 file from node
-    file:
-      path: /tmp/{{ inventory_hostname }}.p12
-      state: absent
+    command: >
+      pk12util -i /etc/ipsec.d/{{ inventory_hostname }}.p12 -d sql:/etc/ipsec.d -W ""
+    notify: restart ipsec
 
 - name: ipsec cluster configuration
   template:
