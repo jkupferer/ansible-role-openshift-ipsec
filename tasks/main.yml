@@ -5,6 +5,11 @@
     name: libreswan
     state: present
 
+- name: Enable IPSec Daemon
+  service:
+    name: ipsec
+    enabled: yes
+
 # Generate certificate authority for cluster.
 - when: inventory_hostname == groups['masters'][0]
   static: no
@@ -18,10 +23,13 @@
   loop_control:
     loop_var: ipsec_hostname
 
-# Copy IPSec CA to all masters.
-#- when: inventory_hostname in groups['masters']
-#  static: no
-#  include: ipsec-ca-sync.yml
-
 # Configure ipsec service on host
 - include: init-ipsec-host.yml
+
+# Create Connection policies
+# This was for opportunistic IPSec, not used for non-opportunistic
+- include: init-ipsec-host-connections.yml
+
+# Openshift >= 3.7 default SHOULD BE firewalld
+# Configure firewalld to permit IPsec communication
+- include: firewalld-setup-rules.yml

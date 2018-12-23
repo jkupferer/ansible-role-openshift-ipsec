@@ -37,22 +37,49 @@
   - name: Import host cert into ipsec database
     command: >
       pk12util -i /etc/ipsec.d/{{ inventory_hostname }}.p12 -d sql:/etc/ipsec.d -W ""
-    notify: restart ipsec
+    register: ipsec_import_host
 
-- name: ipsec cluster configuration
+- name: Create IPSec cluster configuration - Opportunistic
   template:
-    src: openshift-cluster.conf.j2
+    src: openshift-cluster-opportunistic.conf.j2
     dest: /etc/ipsec.d/openshift-cluster.conf
-  notify: restart ipsec
+  when: "'opportunistic' in ipsec_configuration"
+  register: ipsec_cluster_conf
 
-- name: ipsec secrets configuration
+- name: Create IPSec cluster configuration - Non-Opportunistic
+  template:
+    src: openshift-cluster-non-opportunistic.conf.j2
+    dest: /etc/ipsec.d/openshift-cluster.conf
+  when: "'nonopportunistic' in ipsec_configuration"
+  register: ipsec_cluster_conf
+
+- name: Create IPSec secrets configuration - Opportunistic
   template:
     src: openshift-cluster.secrets.j2
-    dest: /etc/ipsec.d/openshift-cluster.secrets
-  notify: restart ipsec
+    dest: /etc/ipsec.d/openshift-cluster-opportunistic.secrets
+  when: "'opportunistic' in ipsec_configuration"
+  register: ipsec_cluster_secrets
 
-- name: start and enable ipsec service
+- name: Create IPSec secrets configuration - Non-Opportunistic
+  template:
+    src: openshift-cluster-non-opportunistic.secrets.j2
+    dest: /etc/ipsec.d/openshift-cluster.secrets
+  when: "'nonopportunistic' in ipsec_configuration"
+  register: ipsec_cluster_secrets
+
+- name: Create main IPSec file at /etc/ipsec.conf
+  copy:
+    dest: "/etc/ipsec.conf"
+    force: yes
+    content: |
+      config setup
+         logfile=/var/log/pluto.log
+         plutodebug="all"
+         xfrmlifetime=60
+      include /etc/ipsec.d/*.conf
+
+- name: Restart IPSec service
   service:
     name: ipsec
-    state: started
-    enabled: yes
+    state: restarted
+  when: ipsec_import_host.changed or ipsec_cluster_conf.changed or ipsec_cluster_secrets.changed
