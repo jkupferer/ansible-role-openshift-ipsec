@@ -1,0 +1,59 @@
+### DESCRIPTION
+#
+# Configure firewall settings for IPSec communication using
+# firewalld
+#
+### VARIABLES
+#
+# none
+#
+### DEPENDENCIES
+#
+# none
+#
+
+- name: Unmask Firewalld
+  systemd:
+    name: firewalld
+    masked: no
+
+- name: Enable firewalld service
+  service:
+    name: firewalld
+    enabled: yes
+    state: started
+
+- name: Add firewall port rules for IPSsec
+  firewalld:
+    port: "{{ item }}"
+    permanent: true
+    state: enabled
+  with_items:
+    - 500/udp
+    - 4500/udp
+  register: ipsec_port_fw
+
+- name: Add firewall service rules for IPSsec
+  firewalld:
+    service: ipsec
+    permanent: true
+    state: enabled
+  register: ipsec_service_fw
+
+- name: Add firewall protocol rich rules for IPSsec
+  firewalld:
+    rich_rule: 'rule protocol value="{{ richrule }}" accept'
+    permanent: true
+    state: enabled
+  with_items:
+    - esp
+    - ah
+  loop_control:
+    loop_var: richrule
+  register: ipsec_rich_fw
+
+- name: Restart firewalld service
+  service:
+    name: firewalld
+    state: restarted
+  when: ipsec_port_fw.changed == true or ipsec_service_fw.changed == true or ipsec_rich_fw.changed == true

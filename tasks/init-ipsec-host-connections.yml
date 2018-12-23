@@ -1,0 +1,27 @@
+- name: Create Policy directory
+  file:
+    path: "/etc/ipsec.d/policies/"
+    owner: root
+    group: root
+    mode: 0700
+    state: directory
+
+- name: Create private file in /etc/ipsec.d/policies
+  template:
+    src: private.j2
+    dest: /etc/ipsec.d/policies/private
+    force: yes
+  register: private_policy_file
+
+- name: Create Clear Connection policy file
+  copy:
+    content: "{{ hostvars[inventory_hostname]['ansible_default_ipv4']['gateway'] }}"
+    dest: /etc/ipsec.d/policies/clear
+    mode: u=rw,g=rw,o=
+  register: clear_policy_file
+
+- name: Restart IPSec service
+  service:
+    name: ipsec
+    state: restarted
+  when: private_policy_file.changed or clear_policy_file.changed

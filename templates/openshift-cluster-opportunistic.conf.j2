@@ -1,0 +1,48 @@
+# This template contains the Opportunistic IPSEC configuration. It is set from 
+# this OCP node's to every other OCP node as part of a group (private policy),
+# which will hold packages and drop them if negotiation fails.
+
+conn private
+# OCP Node (Self)
+	left=%defaultroute
+	leftid=%fromcert
+	leftcert="NSS Certificate DB:{{ inventory_hostname }}"
+# OCP Host (Other)
+	right=%opportunisticgroup
+	rightid=%fromcert
+	rightca=%same
+# Options
+        ikev2=insist
+        authby=rsasig
+        failureshunt=passthrough
+        negotiationshunt=hold
+        auto=ondemand
+        keyingtries=%forever
+        retransmit-timeout=2s
+        encapsulation=yes
+        type=tunnel
+
+# Phase 1/2 Options
+#	ike=aes-sha1
+#	ikev2=propose
+#	authby=rsasig
+#	phase2=esp
+#	phase2alg=aes-sha1
+#	failureshunt=passthrough
+#	negotiationshunt=hold
+#	auto=ondemand
+#	#keyingtries=%forever
+#	#retransmit-timeout=2s
+#        type=transport
+#        nat-ikev1-method=rfc
+#        encapsulation=yes
+#        nat-keepalive=yes
+
+# Everything else outside the IP Network will be set as passthrough
+conn clear
+	left=%defaultroute
+	right=%group
+	authby=never
+	type=passthrough
+	auto=route
+	priority=100
