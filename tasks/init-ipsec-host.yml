@@ -55,7 +55,7 @@
 
 - name: Create IPSec secrets configuration - Opportunistic
   template:
-    src: openshift-cluster.secrets.j2
+    src: openshift-cluster-opportunistic.secrets.j2
     dest: /etc/ipsec.d/openshift-cluster-opportunistic.secrets
   when: "'opportunistic' in ipsec_configuration"
   register: ipsec_cluster_secrets

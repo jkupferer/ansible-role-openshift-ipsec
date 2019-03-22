@@ -33,3 +33,6 @@
 # Openshift >= 3.7 default SHOULD BE firewalld
 # Configure firewalld to permit IPsec communication
 - include: firewalld-setup-rules.yml
+
+# Ping nodes to establish node-to-node tunnels and verify IPSec tunnels
+- include: ping-nodes.yml

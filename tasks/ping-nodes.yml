@@ -1,0 +1,12 @@
+  - name: Cross ping all the nodes to establish node-to-node IPSec tunnels
+    shell: "ping -c2 {{ hostvars[item]['ansible_default_ipv4']['address'] }}"
+    with_items: "{{groups['nodes']}}"
+    failed_when: false
+
+  - name: Check IPSec tunnels
+    shell: "ipsec whack --trafficstatus"
+    register: check_ipsec_result
+
+  - name: Display IPSec tunnels
+    debug:
+      var=check_ipsec_result.stdout
